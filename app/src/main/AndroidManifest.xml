@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.arrival_alarm">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
+        android:requestLegacyExternalStorage="true"
         android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -17,8 +19,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Arrival_alarm"
         tools:targetApi="31">
-
-        <meta-data android:name="com.kakao.sdk.AppKey" android:value="6d03d6fb405130b73fd1d337f710def8"/>
 
         <activity
             android:name=".MainActivity"

@@ -14,6 +14,10 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
     }
 
     buildTypes {
@@ -41,4 +45,8 @@ dependencies {
     androidTestImplementation libs.espresso.core
 
     implementation 'com.kakao.maps.open:android:2.9.5'
+    //implementation 'com.google.android.gms:play-services-location:21.1.0'
+
+    //implementation "com.kakao.sdk:v2-all:2.20.1" // 전체 모듈 설치, 2.11.0 버전부터 지원
+
 }
