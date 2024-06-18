@@ -1,112 +1,222 @@
 package com.example.arrival_alarm;
 
-import android.content.Intent;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
-import android.content.pm.Signature;
-import android.net.Uri;
-import android.os.Bundle;
-import android.util.Base64;
-import android.util.Log;
-
-import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
-import com.kakao.vectormap.*;
-import com.kakao.vectormap.KakaoMapReadyCallback;
-import com.kakao.vectormap.KakaoMapSdk;
-import com.kakao.vectormap.MapLifeCycleCallback;
-import com.kakao.vectormap.MapView;
-import com.kakao.vectormap.MapViewInfo;
+import android.Manifest;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapsInitializer;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+
 import java.util.List;
-import java.util.Map;
-
 
 public class MainActivity extends AppCompatActivity {
-    MapView mapView;
-    KakaoMap kakaoMap;
+    //로그캣 사용 설정
+    private static final String TAG = "MainActivity";
+
+    //객체 선언
+    SupportMapFragment mapFragment;
+    GoogleMap map;
+    Button btnLocation, btnKor2Loc;
+    EditText editText;
+
+    MarkerOptions myMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        KakaoMapSdk.init(this, "6d03d6fb405130b73fd1d337f710def8");
 
-        mapView = findViewById(R.id.map_view);
-        mapView.start(new MapLifeCycleCallback() {
+        //권한 설정
+        checkDangerousPermissions();
+
+        //객체 초기화
+        editText = findViewById(R.id.editText);
+        btnLocation = findViewById(R.id.button1);
+        btnKor2Loc = findViewById(R.id.button2);
+
+        //지도 프래그먼트 설정
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+        mapFragment.getMapAsync(new OnMapReadyCallback() {
             @Override
-            public void onMapDestroy() {
-                // 지도 API가 정상적으로 종료될 때 호출
-                Log.d("KakaoMap", "onMapDestroy: ");
-            }
-
-            @Override
-            public void onMapError(Exception error) {
-                // 인증 실패 및 지도 사용 중 에러가 발생할 때 호출
-                Log.e("KakaoMap", "onMapError: ", error);
-            }
-        }, new KakaoMapReadyCallback() {
-            @Override
-            public void onMapReady(@NonNull KakaoMap map) {
-                // 정상적으로 인증이 완료되었을 때 호출
-                // KakaoMap 객체를 얻어 옵니다.
-                kakaoMap = map;
-            }
-
-            @Override
-            public LatLng getPosition() {
-                return super.getPosition();
-            }
-
-            @Override
-            public int getZoomLevel() {
-                // 지도 시작 시 확대/축소 줌 레벨 설정
-                return 15;
-            }
-
-            @Override
-            public MapViewInfo getMapViewInfo() {
-                // 지도 시작 시 App 및 MapType 설정
-                return MapViewInfo.from("openmap", MapType.NORMAL);
-            }
-
-            @Override
-            public boolean isVisible() {
-                // 지도 시작 시 visible 여부를 설정
-                return true;
-            }
-
-
-        });
-
-        kakaoMap.setOnMapViewInfoChangeListener(new KakaoMap.OnMapViewInfoChangeListener() {
-            @Override
-            public void onMapViewInfoChanged(MapViewInfo mapViewInfo) {
-                // MapViewInfo 변경 성공 시 호출
-            }
-
-            @Override
-            public void onMapViewInfoChangeFailed() {
-                // MapViewInfo 변경 실패 시 호출
+            public void onMapReady(GoogleMap googleMap) {
+                Log.d(TAG, "onMapReady: ");
+                map = googleMap;
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    // TODO: Consider calling
+                    //    ActivityCompat#requestPermissionsain
+                    // here to request the missing permissions, and then overriding
+                    //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                    //                                          int[] grantResults)
+                    // to handle the case where the user grants the permission. See the documentation
+                    // for ActivityCompat#requestPermissions for more details.
+                    return;
+                }
+                map.setMyLocationEnabled(true);
             }
         });
-/*
-        // URL Scheme
-        String url = "kakaomap://open";
+        MapsInitializer.initialize(this);
 
-        // Intent로 URL Scheme 호출
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        //위치 확인 버튼 기능 추가
+        btnLocation.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                requestMyLocation();
+            }
+        });
 
-        intent.addCategory(Intent.CATEGORY_BROWSABLE);
+        btnKor2Loc.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(editText.getText().toString().length() > 0) {
+                    Location location = getLocationFromAddress(getApplicationContext(), editText.getText().toString());
 
-        List<ResolveInfo> list = getPackageManager().queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY);
-        startActivity(intent);
+                    showCurrentLocation(location);
+                }
+            }
+        });
+    }
 
- */
+    private Location getLocationFromAddress(Context context, String address) {
+        Geocoder geocoder = new Geocoder(context);
+        List<Address> addresses;
+        Location resLocation = new Location("");
+        try {
+            addresses = geocoder.getFromLocationName(address, 5);
+            if((addresses == null) || (addresses.size() == 0)) {
+                return null;
+            }
+            Address addressLoc = addresses.get(0);
+
+            resLocation.setLatitude(addressLoc.getLatitude());
+            resLocation.setLongitude(addressLoc.getLongitude());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return resLocation;
+    }
+
+    private void requestMyLocation() {
+        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        try {
+            long minTime = 1000;    //갱신 시간
+            float minDistance = 0;  //갱신에 필요한 최소 거리
+
+            manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTime, minDistance, new LocationListener() {
+                @Override
+                public void onLocationChanged(Location location) {
+                    showCurrentLocation(location);
+                }
+
+                @Override
+                public void onStatusChanged(String s, int i, Bundle bundle) {
+
+                }
+
+                @Override
+                public void onProviderEnabled(String s) {
+
+                }
+
+                @Override
+                public void onProviderDisabled(String s) {
+
+                }
+            });
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showCurrentLocation(Location location) {
+        LatLng curPoint = new LatLng(location.getLatitude(), location.getLongitude());
+        String msg = "Latitutde : " + curPoint.latitude
+                + "\nLongitude : " + curPoint.longitude;
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+
+        //화면 확대, 숫자가 클수록 확대
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(curPoint, 15));
+
+        //마커 찍기
+        Location targetLocation = new Location("");
+        targetLocation.setLatitude(37.4937);
+        targetLocation.setLongitude(127.0643);
+        showMyMarker(targetLocation);
+    }
+
+    //------------------권한 설정 시작------------------------
+    private void checkDangerousPermissions() {
+        String[] permissions = {
+                android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_WIFI_STATE
+        };
+
+        int permissionCheck = PackageManager.PERMISSION_GRANTED;
+        for (int i = 0; i < permissions.length; i++) {
+            permissionCheck = ContextCompat.checkSelfPermission(this, permissions[i]);
+            if (permissionCheck == PackageManager.PERMISSION_DENIED) {
+                break;
+            }
+        }
+
+        if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "권한 있음", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "권한 없음", Toast.LENGTH_LONG).show();
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, permissions[0])) {
+                Toast.makeText(this, "권한 설명 필요함.", Toast.LENGTH_LONG).show();
+            } else {
+                ActivityCompat.requestPermissions(this, permissions, 1);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 1) {
+            for (int i = 0; i < permissions.length; i++) {
+                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, permissions[i] + " 권한이 승인됨.", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(this, permissions[i] + " 권한이 승인되지 않음.", Toast.LENGTH_LONG).show();
+                }
+            }
+        }
+    }
+    //------------------권한 설정 끝------------------------
+
+    private void showMyMarker(Location location) {
+        if(myMarker == null) {
+            myMarker = new MarkerOptions();
+            myMarker.position(new LatLng(location.getLatitude(), location.getLongitude()));
+            myMarker.title("◎ 내위치\n");
+            myMarker.snippet("여기가 어디지?");
+            myMarker.icon(BitmapDescriptorFactory.fromResource(R.drawable.mylocation));
+            map.addMarker(myMarker);
+        }
     }
 }
