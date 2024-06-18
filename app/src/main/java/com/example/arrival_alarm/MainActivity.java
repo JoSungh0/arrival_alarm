@@ -193,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 일정 거리 이내에 없으면 새로운 마커 추가
         if (shouldAddMarker) {
+            clearMarkers();
             MarkerOptions markerOptions = new MarkerOptions();
             markerOptions.position(curPoint);
             Marker newMarker = map.addMarker(markerOptions);
@@ -240,5 +241,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    // 기존에 추가된 모든 마커 삭제
+    public void clearMarkers() {
+        for (Marker marker : markerList) {
+            marker.remove();
+        }
+        markerList.clear();
     }
 }
