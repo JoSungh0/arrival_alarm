@@ -1,7 +1,5 @@
 package com.example.arrival_alarm;
 
-import static android.content.ContentValues.TAG;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -9,11 +7,11 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -22,41 +20,51 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResponse;
+import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final double DISTANCE_THRESHOLD = 50; // 거리 임계값 (미터)
+    private List<Marker> markerList = new ArrayList<>(); //Marker List
     //객체 선언
     SupportMapFragment mapFragment;
     GoogleMap map;
     Button btnLocation, btnKor2Loc;
     EditText editText;
 
-    MarkerOptions myMarker;
+
 
     private LocationCallback locationCallback;
 
     private FusedLocationProviderClient fusedLocationProviderClient;
 
-    LocationManager locationManager;
-
-    boolean isGPSEnabled;
-    boolean isNetworkEnabled;
-
     double latitude, longitude;
+    float zoomLevel = 15.0f;
+
+    private Location currentLocation;
+    private final Location testLocation = new Location("testPoint");
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -112,6 +120,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                if (locationResult != null) {
+                    currentLocation = locationResult.getLastLocation();
+                    showCurrentLocation(currentLocation);
+                }
+            }
+        };
     }
 
     private Location getLocationFromAddress(Context context, String address) {
@@ -137,8 +155,6 @@ public class MainActivity extends AppCompatActivity {
     private void requestMyLocation() {
         try {
             LocationRequest locationRequest = LocationRequest.create();
-            locationRequest.setInterval(10000);
-            locationRequest.setFastestInterval(5000);
             locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
             fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
@@ -152,17 +168,36 @@ public class MainActivity extends AppCompatActivity {
         LatLng curPoint = new LatLng(location.getLatitude(), location.getLongitude());
         String msg = "Latitutde : " + curPoint.latitude
                 + "\nLongitude : " + curPoint.longitude;
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
         Log.d("목적", msg.toString());
 
         //화면 확대, 숫자가 클수록 확대
-        map.animateCamera(CameraUpdateFactory.newLatLngZoom(curPoint, 15));
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(curPoint, zoomLevel));
 
-        //마커 찍기
-        Location targetLocation = new Location("");
-        targetLocation.setLatitude(curPoint.latitude);
-        targetLocation.setLongitude(curPoint.longitude);
-        showMyMarker(targetLocation);
+
+        boolean shouldAddMarker = true;
+
+        // 기존 마커들과 비교하여 일정 거리 이내에 있는지 확인
+        for (Marker marker : markerList) {
+            LatLng markerPosition = marker.getPosition();
+            float[] distanceResults = new float[1];
+            Location.distanceBetween(markerPosition.latitude, markerPosition.longitude,
+                    curPoint.latitude, curPoint.longitude, distanceResults);
+            float distance = distanceResults[0];
+
+            if (distance < DISTANCE_THRESHOLD) {
+                shouldAddMarker = false;
+                break;
+            }
+        }
+
+        // 일정 거리 이내에 없으면 새로운 마커 추가
+        if (shouldAddMarker) {
+            MarkerOptions markerOptions = new MarkerOptions();
+            markerOptions.position(curPoint);
+            Marker newMarker = map.addMarker(markerOptions);
+            markerList.add(newMarker);
+        }
     }
 
     //------------------권한 설정 시작------------------------
@@ -204,18 +239,6 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, permissions[i] + " 권한이 승인되지 않음.", Toast.LENGTH_LONG).show();
                 }
             }
-        }
-    }
-    //------------------권한 설정 끝------------------------
-
-    private void showMyMarker(Location location) {
-        if(myMarker == null) {
-            myMarker = new MarkerOptions();
-            myMarker.position(new LatLng(location.getLatitude(), location.getLongitude()));
-            myMarker.title("◎ 내위치\n");
-            myMarker.snippet("여기가 어디지?");
-            myMarker.icon(BitmapDescriptorFactory.fromResource(R.drawable.mylocation));
-            map.addMarker(myMarker);
         }
     }
 }
