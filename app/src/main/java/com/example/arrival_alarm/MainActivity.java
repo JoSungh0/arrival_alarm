@@ -1,5 +1,8 @@
 package com.example.arrival_alarm;
 
+import static android.content.ContentValues.TAG;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -19,6 +22,10 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapsInitializer;
@@ -31,8 +38,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    //로그캣 사용 설정
-    private static final String TAG = "MainActivity";
 
     //객체 선언
     SupportMapFragment mapFragment;
@@ -42,6 +47,16 @@ public class MainActivity extends AppCompatActivity {
 
     MarkerOptions myMarker;
 
+    private LocationCallback locationCallback;
+
+    private FusedLocationProviderClient fusedLocationProviderClient;
+
+    LocationManager locationManager;
+
+    boolean isGPSEnabled;
+    boolean isNetworkEnabled;
+
+    double latitude, longitude;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         mapFragment.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(GoogleMap googleMap) {
-                Log.d(TAG, "onMapReady: ");
+                Log.d("onMap", "onMapReady: ");
                 map = googleMap;
                 if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     // TODO: Consider calling
@@ -77,10 +92,12 @@ public class MainActivity extends AppCompatActivity {
         });
         MapsInitializer.initialize(this);
 
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+
         //위치 확인 버튼 기능 추가
         btnLocation.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
                 requestMyLocation();
             }
         });
@@ -118,50 +135,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestMyLocation() {
-        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         try {
-            long minTime = 1000;    //갱신 시간
-            float minDistance = 0;  //갱신에 필요한 최소 거리
+            LocationRequest locationRequest = LocationRequest.create();
+            locationRequest.setInterval(10000);
+            locationRequest.setFastestInterval(5000);
+            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-            manager.requestLocationUpdates(LocationManager.GPS_PROVIDER, minTime, minDistance, new LocationListener() {
-                @Override
-                public void onLocationChanged(Location location) {
-                    showCurrentLocation(location);
-                }
-
-                @Override
-                public void onStatusChanged(String s, int i, Bundle bundle) {
-
-                }
-
-                @Override
-                public void onProviderEnabled(String s) {
-
-                }
-
-                @Override
-                public void onProviderDisabled(String s) {
-
-                }
-            });
+            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
         } catch (SecurityException e) {
             e.printStackTrace();
         }
     }
+
 
     private void showCurrentLocation(Location location) {
         LatLng curPoint = new LatLng(location.getLatitude(), location.getLongitude());
         String msg = "Latitutde : " + curPoint.latitude
                 + "\nLongitude : " + curPoint.longitude;
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        Log.d("목적", msg.toString());
 
         //화면 확대, 숫자가 클수록 확대
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(curPoint, 15));
 
         //마커 찍기
         Location targetLocation = new Location("");
-        targetLocation.setLatitude(37.4937);
-        targetLocation.setLongitude(127.0643);
+        targetLocation.setLatitude(curPoint.latitude);
+        targetLocation.setLongitude(curPoint.longitude);
         showMyMarker(targetLocation);
     }
 
@@ -170,7 +170,6 @@ public class MainActivity extends AppCompatActivity {
         String[] permissions = {
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,
                 android.Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_WIFI_STATE
         };
 
         int permissionCheck = PackageManager.PERMISSION_GRANTED;
