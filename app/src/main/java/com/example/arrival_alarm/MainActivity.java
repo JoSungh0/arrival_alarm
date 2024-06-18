@@ -10,12 +10,10 @@ import android.Manifest;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -26,7 +24,6 @@ import android.widget.Toast;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -36,9 +33,7 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,15 +48,11 @@ public class MainActivity extends AppCompatActivity {
     Button btnLocation, btnKor2Loc;
     EditText editText;
 
-    private LocationCallback locationCallback;
-
     private FusedLocationProviderClient fusedLocationProviderClient;
 
     float zoomLevel = 16.0f;
 
     private LatLng destinationLocation, tempLocation, currentLocation;
-
-    LocationRequest locationRequest = LocationRequest.create();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -227,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    //권한 확인하기
     private void checkDangerousPermissions() {
         String[] permissions = {
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -255,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    //접근 권한들을 확인한다.
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

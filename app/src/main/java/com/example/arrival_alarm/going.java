@@ -1,25 +1,15 @@
 package com.example.arrival_alarm;
 
 import static android.content.ContentValues.TAG;
-import static androidx.core.location.LocationManagerCompat.requestLocationUpdates;
 
 import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.content.pm.PackageManager;
-import android.location.Address;
-import android.location.Geocoder;
 import android.location.Location;
-import android.location.LocationManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -91,6 +81,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
             }
         });
 
+        // 목적지 재설정 버튼
         reset.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -98,6 +89,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
             }
         });
 
+        // 남은 거리를 확인하는 버튼
         howdistance.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -117,6 +109,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
         };
 
     }
+
     @Override
     public void onMapReady(GoogleMap nmap) {
         this.nmap = nmap;
@@ -131,7 +124,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
         }
     }
 
-
+    // 두 지점간 거리 확인
     private void checkDistance(LatLng currentLocation, LatLng destinationLocation) {
         if (fusedLocationProviderClient == null) {
             Log.e(TAG, "FusedLocationProviderClient is null");
@@ -154,19 +147,20 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
         distance.setText("목적지까지 남은 거리는 :" + String.valueOf(value));
 
 
-
-        if (value <= 7000) {
-            Intent intent = new Intent(going.this, going.class);
+        // 각 거리마다 헌위치 업데이트 주기가 달라짐
+        if (value <= 500) {
+            Intent intent = new Intent(going.this, alarm.class);
+            startActivity(intent);
 
             Log.d("요청", "곧 도착!!");
             fusedLocationProviderClient.removeLocationUpdates(locationCallback); // Stop updates
-        } else if (value > 8000) {
+        } else if (value > 3000) {
             updateInterval = 60000; // 1
             Log.d("요청", "1분 요청");
-        } else if (value > 10000) {
+        } else if (value > 1500) {
             updateInterval = 30000; // 30 seconds
             Log.d("요청", "30초 요청");
-        } else if (value > 150000) {
+        } else if (value > 800) {
             updateInterval = 10000; // 10 seconds
             Log.d("요청", "10초 요청");
         }
@@ -176,6 +170,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
         requestLocationUpdates(updateInterval);
     }
 
+    // 현위치를 업데이트 함
     private void requestLocationUpdates(long interval) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             /*
@@ -211,6 +206,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
 
     }
 
+    // 목적지를 재설정함
     public void setReset() {
         destinationLocation = currentLocation;
         Intent outIntent = new Intent(getApplicationContext(),
@@ -221,6 +217,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
         finish();
     }
 
+    // 지도 권한 설정
     private void checkDangerousPermissions() {
         String[] permissions = {
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,

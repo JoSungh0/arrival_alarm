@@ -6,12 +6,27 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.NOTIFICATION_POLICY_ACCESS"/>
 
     <permission
         android:name="com.example.arrival_alarm.permission.MAPS_RECEIVE"
         android:protectionLevel="signature" /> <!-- 권한 부여 설정 -->
     <uses-permission android:name="com.example.arrival_alarm.permission.MAPS_RECEIVE" />
     <uses-permission android:name="READ_GSERVICES" />
+
+    <uses-permission android:name="android.permission.NOTIFICATION_POLICY_ACCESS"/>
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false"/>
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
+
+    <uses-permission android:name="android.permission.VIBRATE"/>
 
     <application
         android:allowBackup="true"
@@ -25,9 +40,13 @@
         android:theme="@style/Theme.Arrival_alarm"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+
+
+
         <activity
             android:name=".alarm"
             android:exported="false" />
+
         <activity
             android:name=".going"
             android:exported="false" />
