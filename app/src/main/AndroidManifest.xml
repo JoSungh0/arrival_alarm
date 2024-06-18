@@ -7,13 +7,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <permission android:name="com.example.arrival_alarm.permission.MAPS_RECEIVE"
-        android:protectionLevel="signature"/>
-
-    <!--권한 부여 설정-->
+    <permission
+        android:name="com.example.arrival_alarm.permission.MAPS_RECEIVE"
+        android:protectionLevel="signature" /> <!-- 권한 부여 설정 -->
     <uses-permission android:name="com.example.arrival_alarm.permission.MAPS_RECEIVE" />
-    <uses-permission android:name="READ_GSERVICES"/>
-
+    <uses-permission android:name="READ_GSERVICES" />
 
     <application
         android:allowBackup="true"
@@ -27,18 +25,24 @@
         android:theme="@style/Theme.Arrival_alarm"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
+        <activity
+            android:name=".alarm"
+            android:exported="false" />
+        <activity
+            android:name=".going"
+            android:exported="false" />
 
-        <uses-library android:name="com.google.android.maps"/>
-        <uses-library android:name="org.apache.http.legacy"
-            android:required="false"/>
+        <uses-library android:name="com.google.android.maps" />
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDXfy9FUsxV1-xPBP6SNFXiCIJKmjHfeHA" />
-
         <meta-data
             android:name="com.google.android.gms.vision"
-            android:value="@integer/google_play_services_version"/>
+            android:value="@integer/google_play_services_version" />
 
         <activity
             android:name=".MainActivity"

@@ -1,12 +1,15 @@
 package com.example.arrival_alarm;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -20,15 +23,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.LocationSettingsRequest;
-import com.google.android.gms.location.LocationSettingsResponse;
-import com.google.android.gms.location.SettingsClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapsInitializer;
@@ -54,17 +53,16 @@ public class MainActivity extends AppCompatActivity {
     Button btnLocation, btnKor2Loc;
     EditText editText;
 
-
-
     private LocationCallback locationCallback;
 
     private FusedLocationProviderClient fusedLocationProviderClient;
 
-    double latitude, longitude;
-    float zoomLevel = 15.0f;
+    float zoomLevel = 16.0f;
 
-    private Location currentLocation;
-    private final Location testLocation = new Location("testPoint");
+    private LatLng destinationLocation, tempLocation, currentLocation;
+
+    LocationRequest locationRequest = LocationRequest.create();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,9 +72,9 @@ public class MainActivity extends AppCompatActivity {
         checkDangerousPermissions();
 
         //객체 초기화
-        editText = findViewById(R.id.editText);
-        btnLocation = findViewById(R.id.button1);
-        btnKor2Loc = findViewById(R.id.button2);
+        editText = findViewById(R.id.destination);
+        btnLocation = findViewById(R.id.mylocation);
+        btnKor2Loc = findViewById(R.id.search);
 
         //지도 프래그먼트 설정
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
@@ -95,7 +93,31 @@ public class MainActivity extends AppCompatActivity {
                     // for ActivityCompat#requestPermissions for more details.
                     return;
                 }
+
+                fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+                fusedLocationProviderClient.getLastLocation()
+                        .addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
+                            @Override
+                            public void onSuccess(Location location) {
+                                if (location != null) {
+                                    currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                                    map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, zoomLevel));
+                                }
+                            }
+                        });
+
                 map.setMyLocationEnabled(true);
+                map.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+                    @Override
+                    public void onMapClick(@NonNull LatLng latLng) {
+                        // 마커 클릭 시 다이얼로그
+                        Marker marker = markerList.get(0);
+                        if (marker != null) {
+                            showDestinationDialog(marker);
+                        }
+
+                    }
+                });
             }
         });
         MapsInitializer.initialize(this);
@@ -107,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 requestMyLocation();
+
             }
         });
 
@@ -120,18 +143,9 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(@NonNull LocationResult locationResult) {
-                if (locationResult != null) {
-                    currentLocation = locationResult.getLastLocation();
-                    showCurrentLocation(currentLocation);
-                }
-            }
-        };
     }
 
+    // 검색 위치의 경도 위도 가져오기
     private Location getLocationFromAddress(Context context, String address) {
         Geocoder geocoder = new Geocoder(context);
         List<Address> addresses;
@@ -152,28 +166,40 @@ public class MainActivity extends AppCompatActivity {
         return resLocation;
     }
 
+    //내 위치 정보 가져오기
     private void requestMyLocation() {
         try {
-            LocationRequest locationRequest = LocationRequest.create();
-            locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+            fusedLocationProviderClient.getLastLocation()
+                    .addOnSuccessListener(MainActivity.this, new OnSuccessListener<Location>() {
+                        @Override
+                        public void onSuccess(Location location) {
+                            if (location != null) {
+                                currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                                map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, zoomLevel));
+                            }
+                        }
+                    });
+            Location clocation = new Location(""); // 더미 제공자 이름을 설정합니다. 실제로는 GPS 또는 네트워크 제공자를 사용할 수 있습니다.
+            clocation.setLatitude(currentLocation.latitude);
+            clocation.setLongitude(currentLocation.longitude);
 
-            fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+            showCurrentLocation(clocation);
         } catch (SecurityException e) {
             e.printStackTrace();
         }
     }
 
-
+    //내 위치 정보 마커로 표시하기
     private void showCurrentLocation(Location location) {
         LatLng curPoint = new LatLng(location.getLatitude(), location.getLongitude());
         String msg = "Latitutde : " + curPoint.latitude
                 + "\nLongitude : " + curPoint.longitude;
         //Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+        tempLocation = curPoint;
         Log.d("목적", msg.toString());
 
         //화면 확대, 숫자가 클수록 확대
         map.animateCamera(CameraUpdateFactory.newLatLngZoom(curPoint, zoomLevel));
-
 
         boolean shouldAddMarker = true;
 
@@ -201,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //------------------권한 설정 시작------------------------
+
     private void checkDangerousPermissions() {
         String[] permissions = {
                 android.Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -243,11 +269,54 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // 목적지 설정 다이얼로그 표시
+    private void showDestinationDialog(Marker marker) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("목적지로 설정")
+                .setMessage("이곳을 목적지로 설정하시겠습니까?")
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        destinationLocation = tempLocation;
+                        // Yes 버튼 클릭 시 처리할 내용
+                        Intent intent = new Intent(MainActivity.this, going.class);
+                        intent.putExtra("dlatitude", destinationLocation.latitude);
+                        intent.putExtra("dlongitude", destinationLocation.longitude);
+                        intent.putExtra("clatitude", currentLocation.latitude);
+                        intent.putExtra("clongitude", currentLocation.longitude);
+                        startActivityForResult(intent, 0);
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // No 버튼 클릭 시 처리할 내용
+                        dialog.dismiss(); // 다이얼로그 닫기
+                    }
+                });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
     // 기존에 추가된 모든 마커 삭제
     public void clearMarkers() {
         for (Marker marker : markerList) {
             marker.remove();
         }
         markerList.clear();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(resultCode == RESULT_OK) {
+            double latitude = getIntent().getDoubleExtra("dlatitude", 0.0);
+            double longitude = getIntent().getDoubleExtra("dlongitude", 0.0);
+
+            // LatLng 객체로 복원
+            destinationLocation = new LatLng(latitude, longitude);
+        }
     }
 }
