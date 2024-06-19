@@ -148,7 +148,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
 
 
         // 각 거리마다 헌위치 업데이트 주기가 달라짐
-        if (value <= 500) {
+        if (value <= 180) {
             Intent intent = new Intent(going.this, alarm.class);
             startActivity(intent);
 
@@ -173,7 +173,7 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
     // 현위치를 업데이트 함
     private void requestLocationUpdates(long interval) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            /*
+
             fusedLocationProviderClient.getLastLocation()
                     .addOnSuccessListener(going.this, new OnSuccessListener<Location>() {
                         @Override
@@ -185,8 +185,8 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
                         }
                     });
 
-             */
 
+            /*
             locationRequest = new LocationRequest();
             locationRequest.setInterval(interval); // 업데이트 간격 (밀리초)
             locationRequest.setFastestInterval(interval / 2); // 최고 업데이트 간격 (밀리초)
@@ -204,7 +204,11 @@ public class going extends AppCompatActivity implements OnMapReadyCallback {
             fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
         }
 
+
+             */
+        }
     }
+
 
     // 목적지를 재설정함
     public void setReset() {
